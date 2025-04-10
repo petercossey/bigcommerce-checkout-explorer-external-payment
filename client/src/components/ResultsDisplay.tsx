@@ -4,13 +4,20 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import SummaryTab from "./SummaryTab";
 import DetailsTab from "./DetailsTab";
 import RawJsonTab from "./RawJsonTab";
+import ExternalPaymentTab from "./ExternalPaymentTab";
 import { Checkout } from "../types/checkout";
 
 interface ResultsDisplayProps {
   checkoutData: Checkout;
+  storeHash?: string;
+  accessToken?: string;
 }
 
-export default function ResultsDisplay({ checkoutData }: ResultsDisplayProps) {
+export default function ResultsDisplay({ 
+  checkoutData, 
+  storeHash = "", 
+  accessToken = "" 
+}: ResultsDisplayProps) {
   const [activeTab, setActiveTab] = useState("summary");
 
   return (
@@ -32,6 +39,12 @@ export default function ResultsDisplay({ checkoutData }: ResultsDisplayProps) {
                 Full Details
               </TabsTrigger>
               <TabsTrigger
+                value="external-payment"
+                className="px-6 py-3 data-[state=active]:text-[#34B3E4] data-[state=active]:border-b-2 data-[state=active]:border-[#34B3E4] data-[state=inactive]:text-neutral-500 font-medium text-sm"
+              >
+                External Payment
+              </TabsTrigger>
+              <TabsTrigger
                 value="json"
                 className="px-6 py-3 data-[state=active]:text-[#34B3E4] data-[state=active]:border-b-2 data-[state=active]:border-[#34B3E4] data-[state=inactive]:text-neutral-500 font-medium text-sm"
               >
@@ -47,6 +60,14 @@ export default function ResultsDisplay({ checkoutData }: ResultsDisplayProps) {
             
             <TabsContent value="details" className="p-6 m-0">
               <DetailsTab checkoutData={checkoutData} />
+            </TabsContent>
+            
+            <TabsContent value="external-payment" className="p-6 m-0">
+              <ExternalPaymentTab 
+                checkoutData={checkoutData} 
+                storeHash={storeHash}
+                accessToken={accessToken}
+              />
             </TabsContent>
             
             <TabsContent value="json" className="p-6 m-0">

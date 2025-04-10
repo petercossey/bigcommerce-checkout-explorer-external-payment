@@ -54,7 +54,11 @@ export default function CheckoutExplorer() {
         )}
         
         {checkoutData && (
-          <ResultsDisplay checkoutData={checkoutData} />
+          <ResultsDisplay 
+            checkoutData={checkoutData} 
+            storeHash={storeHash}
+            accessToken={accessToken}
+          />
         )}
       </main>
       

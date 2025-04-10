@@ -73,6 +73,123 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Create checkout token
+  app.post("/api/bigcommerce/checkout-token", async (req: Request, res: Response) => {
+    try {
+      const { storeHash, accessToken, checkoutId } = req.body;
+      
+      if (!storeHash || !accessToken || !checkoutId) {
+        return res.status(400).json({ error: "Missing required parameters" });
+      }
+      
+      const response = await fetch(
+        `https://api.bigcommerce.com/stores/${storeHash}/v3/checkouts/${checkoutId}/token`,
+        {
+          method: "POST",
+          headers: {
+            "X-Auth-Token": accessToken,
+            "Content-Type": "application/json",
+            "Accept": "application/json"
+          }
+        }
+      );
+      
+      const data = await response.json();
+      
+      if (response.ok) {
+        return res.json(data);
+      } else {
+        return res.status(response.status).json({ 
+          error: `API Error: ${response.status} ${response.statusText}`,
+          details: data
+        });
+      }
+    } catch (error) {
+      console.error("Error generating checkout token:", error);
+      return res.status(500).json({ error: "Failed to generate checkout token" });
+    }
+  });
+
+  // Create order from checkout
+  app.post("/api/bigcommerce/create-order", async (req: Request, res: Response) => {
+    try {
+      const { storeHash, accessToken, checkoutId } = req.body;
+      
+      if (!storeHash || !accessToken || !checkoutId) {
+        return res.status(400).json({ error: "Missing required parameters" });
+      }
+      
+      const response = await fetch(
+        `https://api.bigcommerce.com/stores/${storeHash}/v3/checkouts/${checkoutId}/orders`,
+        {
+          method: "POST",
+          headers: {
+            "X-Auth-Token": accessToken,
+            "Content-Type": "application/json",
+            "Accept": "application/json"
+          }
+        }
+      );
+      
+      const data = await response.json();
+      
+      if (response.ok) {
+        return res.json(data);
+      } else {
+        return res.status(response.status).json({ 
+          error: `API Error: ${response.status} ${response.statusText}`,
+          details: data
+        });
+      }
+    } catch (error) {
+      console.error("Error creating order:", error);
+      return res.status(500).json({ error: "Failed to create order" });
+    }
+  });
+
+  // Update order status and payment information
+  app.post("/api/bigcommerce/update-order", async (req: Request, res: Response) => {
+    try {
+      const { storeHash, accessToken, orderId, orderData } = req.body;
+      
+      if (!storeHash || !accessToken || !orderId || !orderData) {
+        return res.status(400).json({ error: "Missing required parameters" });
+      }
+      
+      const response = await fetch(
+        `https://api.bigcommerce.com/stores/${storeHash}/v2/orders/${orderId}`,
+        {
+          method: "PUT",
+          headers: {
+            "X-Auth-Token": accessToken,
+            "Content-Type": "application/json",
+            "Accept": "application/json"
+          },
+          body: JSON.stringify(orderData)
+        }
+      );
+      
+      if (response.ok) {
+        const data = await response.json();
+        return res.json(data);
+      } else {
+        let errorMessage = `API Error: ${response.status} ${response.statusText}`;
+        try {
+          const errorData = await response.json();
+          return res.status(response.status).json({
+            error: errorMessage,
+            details: errorData
+          });
+        } catch (e) {
+          return res.status(response.status).json({ error: errorMessage });
+        }
+      }
+    } catch (error) {
+      console.error("Error updating order:", error);
+      return res.status(500).json({ error: "Failed to update order" });
+    }
+  });
+
   const httpServer = createServer(app);
 
   return httpServer;
