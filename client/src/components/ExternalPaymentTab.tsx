@@ -125,29 +125,31 @@ export default function ExternalPaymentTab({
       // Step 2: Convert checkout to order
       logs.push("Step 2: Converting checkout to order...");
       
+      let createdOrderId: number | null = null;
+      
       try {
         const orderData = await convertCheckoutToOrder(storeHash, accessToken, checkoutId);
-        const orderId = orderData.data.id;
+        createdOrderId = orderData.data.id;
         
-        if (!orderId) {
+        if (!createdOrderId) {
           logs.push("Order response did not contain an order ID");
           throw new Error("Order response did not contain an order ID");
         }
         
-        logs.push(`Order created successfully with ID: ${orderId}`);
+        logs.push(`Order created successfully with ID: ${createdOrderId}`);
   
         // Step 3: Get order details
         logs.push("Step 3: Getting order details...");
         
         try {
-          const orderDetails = await getOrderDetails(storeHash, accessToken, orderId);
+          const orderDetails = await getOrderDetails(storeHash, accessToken, createdOrderId);
           logs.push(`Order details retrieved successfully: ${JSON.stringify(orderDetails, null, 2).substring(0, 200)}...`);
           
           // Step 4: Update order with payment information
           logs.push("Step 4: Updating order with payment information...");
           
           try {
-            const updateData = await updateOrderStatus(storeHash, accessToken, orderId, {
+            const updateData = await updateOrderStatus(storeHash, accessToken, createdOrderId, {
               payment_method: data.paymentMethod,
               payment_provider_id: data.paymentProviderId,
               status_id: parseInt(data.statusId)
@@ -170,7 +172,11 @@ export default function ExternalPaymentTab({
       // Step 5: Set confirmation URL
       logs.push("Step 5: Flow completed - generating confirmation URL");
       const finalStoreUrl = storeUrl || "https://yourstore.mybigcommerce.com"; // Use provided URL or fallback
-      setConfirmationUrl(`${finalStoreUrl}/checkout/order-confirmation/${orderId}?t=${token}`);
+      if (createdOrderId) {
+        setConfirmationUrl(`${finalStoreUrl}/checkout/order-confirmation/${createdOrderId}?t=${token}`);
+      } else {
+        logs.push("Warning: Unable to generate confirmation URL because order ID is missing");
+      }
       logs.push("Payment middleware flow completed successfully");
       
       setDebugInfo(logs);
