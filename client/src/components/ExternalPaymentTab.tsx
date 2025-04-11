@@ -174,8 +174,8 @@ export default function ExternalPaymentTab({
       const finalStoreUrl = storeUrl || "https://yourstore.mybigcommerce.com"; // Use provided URL or fallback
       if (createdOrderId) {
         // Format: {store_url}/order-confirmation/{order_id}?t={checkout_token}
-        setConfirmationUrl(`${finalStoreUrl}/order-confirmation/${createdOrderId}?t=${token}`);
-        logs.push(`Confirmation URL created with pattern: {store_url}/order-confirmation/{order_id}?t={checkout_token}`);
+        setConfirmationUrl(`${finalStoreUrl}/checkout/order-confirmation/${createdOrderId}?t=${token}`);
+        logs.push(`Confirmation URL created with pattern: {store_url}/checkout/order-confirmation/{order_id}?t={checkout_token}`);
       } else {
         logs.push("Warning: Unable to generate confirmation URL because order ID is missing");
       }
