@@ -21,7 +21,6 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Checkout } from "../types/checkout";
-import { convertCheckoutToOrder, updateOrderStatus } from "../lib/api";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ClipboardCopy, CheckCircle2, AlertCircle } from "lucide-react";
 
@@ -68,12 +67,13 @@ export default function ExternalPaymentTab({
   const [error, setError] = useState<string | null>(null);
   const [confirmationUrl, setConfirmationUrl] = useState<string | null>(null);
   const [isCopied, setIsCopied] = useState(false);
+  const [debugInfo, setDebugInfo] = useState<string[]>([]);
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      paymentMethod: "",
-      paymentProviderId: "",
+      paymentMethod: "ExternalPayment",
+      paymentProviderId: "transaction_123456789",
       statusId: "11", // Default to "Awaiting Fulfillment"
     },
   });
@@ -82,11 +82,18 @@ export default function ExternalPaymentTab({
     setIsLoading(true);
     setError(null);
     setConfirmationUrl(null);
+    setDebugInfo([]);
 
     try {
       const checkoutId = checkoutData.data.id;
+      const logs: string[] = [];
+
+      logs.push("Starting payment middleware flow...");
+      logs.push(`Checkout ID: ${checkoutId}`);
 
       // Step 1: Generate checkout token
+      logs.push("Step 1: Generating checkout token...");
+      
       const tokenResponse = await fetch(`/api/bigcommerce/checkout-token`, {
         method: "POST",
         headers: {
@@ -96,37 +103,90 @@ export default function ExternalPaymentTab({
       });
 
       if (!tokenResponse.ok) {
-        throw new Error("Failed to generate checkout token");
+        const errorText = await tokenResponse.text();
+        logs.push(`Token generation failed: ${tokenResponse.status} ${tokenResponse.statusText}`);
+        logs.push(`Error details: ${errorText}`);
+        throw new Error(`Failed to generate checkout token: ${tokenResponse.status} ${tokenResponse.statusText}`);
       }
       
-      const { token } = await tokenResponse.json();
+      const tokenData = await tokenResponse.json();
+      const token = tokenData.token;
+      
+      if (!token) {
+        logs.push("Token response did not contain a token");
+        throw new Error("Token response did not contain a token");
+      }
+      
+      logs.push("Token generated successfully");
 
       // Step 2: Convert checkout to order
-      const orderResponse = await convertCheckoutToOrder(
-        storeHash,
-        accessToken,
-        checkoutId
-      );
+      logs.push("Step 2: Converting checkout to order...");
+      
+      const orderResponse = await fetch(`/api/bigcommerce/create-order`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ storeHash, accessToken, checkoutId }),
+      });
 
-      const orderId = orderResponse.data.id;
+      if (!orderResponse.ok) {
+        const errorText = await orderResponse.text();
+        logs.push(`Order creation failed: ${orderResponse.status} ${orderResponse.statusText}`);
+        logs.push(`Error details: ${errorText}`);
+        throw new Error(`Failed to create order: ${orderResponse.status} ${orderResponse.statusText}`);
+      }
+      
+      const orderData = await orderResponse.json();
+      const orderId = orderData.data.id;
+      
+      if (!orderId) {
+        logs.push("Order response did not contain an order ID");
+        throw new Error("Order response did not contain an order ID");
+      }
+      
+      logs.push(`Order created successfully with ID: ${orderId}`);
 
       // Step 3: Update order with payment information
-      await updateOrderStatus(
-        storeHash, 
-        accessToken, 
-        orderId, 
-        {
-          payment_method: data.paymentMethod,
-          payment_provider_id: data.paymentProviderId,
-          status_id: parseInt(data.statusId)
-        }
-      );
+      logs.push("Step 3: Updating order with payment information...");
+      
+      const updateResponse = await fetch(`/api/bigcommerce/update-order`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          storeHash,
+          accessToken,
+          orderId,
+          orderData: {
+            payment_method: data.paymentMethod,
+            payment_provider_id: data.paymentProviderId,
+            status_id: parseInt(data.statusId)
+          }
+        }),
+      });
+
+      if (!updateResponse.ok) {
+        const errorText = await updateResponse.text();
+        logs.push(`Order update failed: ${updateResponse.status} ${updateResponse.statusText}`);
+        logs.push(`Error details: ${errorText}`);
+        throw new Error(`Failed to update order: ${updateResponse.status} ${updateResponse.statusText}`);
+      }
+      
+      logs.push("Order updated successfully");
 
       // Step 4: Set confirmation URL
-      setConfirmationUrl(`/checkout/order-confirmation/${orderId}?t=${token}`);
+      logs.push("Step 4: Flow completed - generating confirmation URL");
+      const storeUrl = "https://yourstore.example.com"; // This would be dynamic in a real app
+      setConfirmationUrl(`${storeUrl}/checkout/order-confirmation/${orderId}?t=${token}`);
+      logs.push("Payment middleware flow completed successfully");
+      
+      setDebugInfo(logs);
     } catch (err) {
       console.error("Error processing payment:", err);
       setError(err instanceof Error ? err.message : "An unknown error occurred");
+      setDebugInfo(prev => [...prev, `Error: ${err instanceof Error ? err.message : "An unknown error occurred"}`]);
     } finally {
       setIsLoading(false);
     }
@@ -275,6 +335,17 @@ export default function ExternalPaymentTab({
                 <ClipboardCopy className="h-4 w-4 mr-1" />
                 {isCopied ? "Copied!" : "Copy"}
               </Button>
+            </div>
+          </div>
+        )}
+        
+        {debugInfo.length > 0 && (
+          <div className="mt-6 border border-gray-200 rounded-lg p-4 bg-gray-50">
+            <h3 className="text-sm font-medium mb-2">Debug Information</h3>
+            <div className="bg-black text-green-400 p-3 rounded text-xs font-mono overflow-auto max-h-60">
+              {debugInfo.map((line, index) => (
+                <div key={index}>{line}</div>
+              ))}
             </div>
           </div>
         )}

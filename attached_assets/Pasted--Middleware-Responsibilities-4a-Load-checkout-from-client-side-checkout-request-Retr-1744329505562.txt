@@ -1,0 +1,107 @@
+## ⚙️ Middleware Responsibilities
+
+### 4a. Load checkout (from client-side checkout request)
+
+* Retrieve checkout details to confirm state and gather required data.
+
+Request:
+
+```
+GET /v3/checkouts/{checkout_id}
+Authorization: X-Auth-Token {access_token}
+```
+
+Purpose:
+
+* Validate checkout state  
+* Extract cart, customer, address, and pricing details
+
+---
+
+### 4b. Create Checkout Token
+
+* Generate a token associated with the checkout. This token is required for secure access to the order confirmation page later.
+
+Request:
+
+```
+POST /v3/checkouts/{checkout_id}/token
+Authorization: X-Auth-Token {access_token}
+```
+
+Response:
+
+```
+{
+  "token": "{checkout_token}"
+}
+```
+
+---
+
+### 4c. Create order via BigCommerce v3 Checkout API
+
+* Finalize the checkout by converting it into an order before processing payment.  
+* The order will initially have a status of 0 (Incomplete), and the checkout object will remain accessible until the status is changed.
+
+Request:
+
+```
+POST /v3/checkouts/{checkout_id}/orders
+Authorization: X-Auth-Token {access_token}
+```
+
+Response:
+
+* Returns `order.id` and related details
+
+---
+
+### 4d. Process payment with provider
+
+* Use the payment token and order amount to authorize the transaction with the external provider.  
+* Handle any required 3DS authentication or async flow.
+
+---
+
+### 4e. Update order fields via v2 Orders API
+
+* Update the order with payment information and set an appropriate status to indicate the order has been paid.  
+* Most commonly, the status is updated to 11 (Awaiting Fulfillment), but other valid status values may be used depending on your flow and business logic.
+
+Request:
+
+```
+PUT /v2/orders/{order_id}
+Content-Type: application/json
+Authorization: X-Auth-Token {access_token}
+```
+
+```
+PUT /v2/orders/{order_id}
+Content-Type: application/json
+Authorization: X-Auth-Token {access_token}
+```
+
+Payload:
+
+```
+{
+  "payment_method": "CustomPay",
+  "payment_provider_id": "transaction_id_123456789",
+  "status_id": 11
+}
+```
+
+---
+
+## ✅ 5\. On success: Redirect to confirmation page
+
+After successful order update, redirect the shopper to:
+
+```
+/checkout/order-confirmation/{order_id}?t={checkout_token}
+```
+
+* order\_id: Returned from the order creation response  
+* checkout\_token: From the checkout token created earlier
