@@ -93,6 +93,40 @@ export async function convertCheckoutToOrder(
 }
 
 /**
+ * Get order details
+ */
+export async function getOrderDetails(
+  storeHash: string,
+  accessToken: string,
+  orderId: number
+) {
+  const response = await fetch("/api/bigcommerce/get-order", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ storeHash, accessToken, orderId }),
+  });
+
+  if (!response.ok) {
+    let errorMessage = `Failed to get order details: ${response.status} ${response.statusText}`;
+    
+    try {
+      const errorData = await response.json();
+      if (errorData.error) {
+        errorMessage = errorData.error;
+      }
+    } catch (e) {
+      // If we can't parse the error as JSON, just use the default error message
+    }
+    
+    throw new Error(errorMessage);
+  }
+
+  return await response.json();
+}
+
+/**
  * Update order status and payment information
  */
 export async function updateOrderStatus(

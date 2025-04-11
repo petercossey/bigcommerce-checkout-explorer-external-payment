@@ -23,6 +23,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Checkout } from "../types/checkout";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ClipboardCopy, CheckCircle2, AlertCircle } from "lucide-react";
+import { convertCheckoutToOrder, getOrderDetails, updateOrderStatus } from "../lib/api";
 
 // Status options from BigCommerce Orders API
 const ORDER_STATUSES = [
@@ -124,84 +125,47 @@ export default function ExternalPaymentTab({
       // Step 2: Convert checkout to order
       logs.push("Step 2: Converting checkout to order...");
       
-      const orderResponse = await fetch(`/api/bigcommerce/create-order`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ storeHash, accessToken, checkoutId }),
-      });
-
-      if (!orderResponse.ok) {
-        const errorText = await orderResponse.text();
-        logs.push(`Order creation failed: ${orderResponse.status} ${orderResponse.statusText}`);
-        logs.push(`Error details: ${errorText}`);
-        throw new Error(`Failed to create order: ${orderResponse.status} ${orderResponse.statusText}`);
-      }
-      
-      const orderData = await orderResponse.json();
-      const orderId = orderData.data.id;
-      
-      if (!orderId) {
-        logs.push("Order response did not contain an order ID");
-        throw new Error("Order response did not contain an order ID");
-      }
-      
-      logs.push(`Order created successfully with ID: ${orderId}`);
-
-      // Step 3: Get order details
-      logs.push("Step 3: Getting order details...");
-      
-      const orderDetailsResponse = await fetch(`/api/bigcommerce/get-order`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          storeHash,
-          accessToken,
-          orderId
-        }),
-      });
-
-      if (!orderDetailsResponse.ok) {
-        const errorText = await orderDetailsResponse.text();
-        logs.push(`Order details retrieval failed: ${orderDetailsResponse.status} ${orderDetailsResponse.statusText}`);
-        logs.push(`Error details: ${errorText}`);
-        throw new Error(`Failed to get order details: ${orderDetailsResponse.status} ${orderDetailsResponse.statusText}`);
-      }
-      
-      const orderDetails = await orderDetailsResponse.json();
-      logs.push(`Order details retrieved successfully: ${JSON.stringify(orderDetails, null, 2).substring(0, 200)}...`);
-      
-      // Step 4: Update order with payment information
-      logs.push("Step 4: Updating order with payment information...");
-      
-      const updateResponse = await fetch(`/api/bigcommerce/update-order`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          storeHash,
-          accessToken,
-          orderId,
-          orderData: {
-            payment_method: data.paymentMethod,
-            payment_provider_id: data.paymentProviderId,
-            status_id: parseInt(data.statusId)
+      try {
+        const orderData = await convertCheckoutToOrder(storeHash, accessToken, checkoutId);
+        const orderId = orderData.data.id;
+        
+        if (!orderId) {
+          logs.push("Order response did not contain an order ID");
+          throw new Error("Order response did not contain an order ID");
+        }
+        
+        logs.push(`Order created successfully with ID: ${orderId}`);
+  
+        // Step 3: Get order details
+        logs.push("Step 3: Getting order details...");
+        
+        try {
+          const orderDetails = await getOrderDetails(storeHash, accessToken, orderId);
+          logs.push(`Order details retrieved successfully: ${JSON.stringify(orderDetails, null, 2).substring(0, 200)}...`);
+          
+          // Step 4: Update order with payment information
+          logs.push("Step 4: Updating order with payment information...");
+          
+          try {
+            const updateData = await updateOrderStatus(storeHash, accessToken, orderId, {
+              payment_method: data.paymentMethod,
+              payment_provider_id: data.paymentProviderId,
+              status_id: parseInt(data.statusId)
+            });
+            
+            logs.push("Order updated successfully");
+          } catch (updateError) {
+            logs.push(`Order update failed: ${updateError instanceof Error ? updateError.message : "Unknown error"}`);
+            throw updateError;
           }
-        }),
-      });
-
-      if (!updateResponse.ok) {
-        const errorText = await updateResponse.text();
-        logs.push(`Order update failed: ${updateResponse.status} ${updateResponse.statusText}`);
-        logs.push(`Error details: ${errorText}`);
-        throw new Error(`Failed to update order: ${updateResponse.status} ${updateResponse.statusText}`);
+        } catch (detailsError) {
+          logs.push(`Order details retrieval failed: ${detailsError instanceof Error ? detailsError.message : "Unknown error"}`);
+          throw detailsError;
+        }
+      } catch (orderError) {
+        logs.push(`Order creation failed: ${orderError instanceof Error ? orderError.message : "Unknown error"}`);
+        throw orderError;
       }
-      
-      logs.push("Order updated successfully");
 
       // Step 5: Set confirmation URL
       logs.push("Step 5: Flow completed - generating confirmation URL");
