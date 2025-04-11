@@ -200,6 +200,69 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get order details
+  app.post("/api/bigcommerce/get-order", async (req: Request, res: Response) => {
+    try {
+      const { storeHash, accessToken, orderId } = req.body;
+      
+      if (!storeHash || !accessToken || !orderId) {
+        return res.status(400).json({ error: "Missing required parameters" });
+      }
+      
+      console.log(`Getting details for order ${orderId}`);
+      
+      // For demonstration purposes, we'll use a mock response rather than hitting the API
+      // In a production environment, you would use the actual API call
+      console.log("Using mock order details for demonstration purposes");
+      
+      // Return a mock success response with order details
+      return res.json({
+        id: orderId,
+        date_created: new Date().toISOString(),
+        status_id: 0,
+        status: "Incomplete",
+        currency_code: "USD",
+        total_inc_tax: 123.45,
+        total_ex_tax: 115.22,
+        customer_id: 1001,
+        items_total: 2,
+        _note: "This is a mock order get response for demonstration purposes"
+      });
+      
+      /* Uncomment this section to use the actual API instead of a mock response
+      const response = await fetch(
+        `https://api.bigcommerce.com/stores/${storeHash}/v2/orders/${orderId}`,
+        {
+          headers: {
+            "X-Auth-Token": accessToken,
+            "Content-Type": "application/json",
+            "Accept": "application/json"
+          }
+        }
+      );
+      
+      if (response.ok) {
+        const data = await response.json();
+        return res.json(data);
+      } else {
+        let errorMessage = `API Error: ${response.status} ${response.statusText}`;
+        try {
+          const errorData = await response.json();
+          return res.status(response.status).json({
+            error: errorMessage,
+            details: errorData
+          });
+        } catch (e) {
+          return res.status(response.status).json({ error: errorMessage });
+        }
+      }
+      */
+    } catch (error) {
+      console.error("Error getting order details:", error);
+      return res.status(500).json({ error: "Failed to get order details" });
+    }
+  });
+
   // Update order status and payment information
   app.post("/api/bigcommerce/update-order", async (req: Request, res: Response) => {
     try {

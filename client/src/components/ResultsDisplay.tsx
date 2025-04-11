@@ -11,12 +11,14 @@ interface ResultsDisplayProps {
   checkoutData: Checkout;
   storeHash?: string;
   accessToken?: string;
+  storeUrl?: string;
 }
 
 export default function ResultsDisplay({ 
   checkoutData, 
   storeHash = "", 
-  accessToken = "" 
+  accessToken = "", 
+  storeUrl = "" 
 }: ResultsDisplayProps) {
   const [activeTab, setActiveTab] = useState("summary");
 
@@ -67,6 +69,7 @@ export default function ResultsDisplay({
                 checkoutData={checkoutData} 
                 storeHash={storeHash}
                 accessToken={accessToken}
+                storeUrl={storeUrl}
               />
             </TabsContent>
             

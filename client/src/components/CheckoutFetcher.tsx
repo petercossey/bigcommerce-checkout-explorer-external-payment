@@ -6,12 +6,13 @@ import { Search, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardTitle, CardContent } from "@/components/ui/card";
-import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { fetchCheckout } from "../lib/api";
 import { Checkout } from "../types/checkout";
 
 const formSchema = z.object({
-  checkoutId: z.string().trim().uuid({ message: "Must be a valid UUID" })
+  checkoutId: z.string().trim().uuid({ message: "Must be a valid UUID" }),
+  storeUrl: z.string().trim().url({ message: "Must be a valid URL" }).optional().or(z.literal('')),
 });
 
 type FormData = z.infer<typeof formSchema>;
@@ -21,6 +22,7 @@ interface CheckoutFetcherProps {
   storeHash: string;
   accessToken: string;
   onCheckoutFetched: (checkoutData: Checkout | null) => void;
+  onStoreUrlUpdated?: (storeUrl: string) => void;
   onError: (message: string) => void;
 }
 
@@ -29,6 +31,7 @@ export default function CheckoutFetcher({
   storeHash,
   accessToken,
   onCheckoutFetched,
+  onStoreUrlUpdated,
   onError
 }: CheckoutFetcherProps) {
   const [isLoading, setIsLoading] = useState(false);
@@ -36,7 +39,8 @@ export default function CheckoutFetcher({
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      checkoutId: ""
+      checkoutId: "",
+      storeUrl: ""
     }
   });
 
@@ -51,6 +55,11 @@ export default function CheckoutFetcher({
     try {
       const checkoutData = await fetchCheckout(storeHash, accessToken, data.checkoutId);
       onCheckoutFetched(checkoutData);
+      
+      // Pass the store URL to the parent component if provided
+      if (data.storeUrl && onStoreUrlUpdated) {
+        onStoreUrlUpdated(data.storeUrl);
+      }
     } catch (error) {
       onError(`Failed to fetch checkout data: ${error instanceof Error ? error.message : String(error)}`);
       onCheckoutFetched(null);
@@ -84,6 +93,31 @@ export default function CheckoutFetcher({
                       disabled={isLoading}
                     />
                   </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            <FormField
+              control={form.control}
+              name="storeUrl"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-neutral-500">
+                    Store URL
+                  </FormLabel>
+                  <FormControl>
+                    <Input
+                      {...field}
+                      placeholder="e.g., https://yourstorename.mybigcommerce.com"
+                      className="bg-neutral-50"
+                      disabled={isLoading}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                  <p className="text-sm text-muted-foreground">
+                    Used to generate order confirmation URLs
+                  </p>
                 </FormItem>
               )}
             />

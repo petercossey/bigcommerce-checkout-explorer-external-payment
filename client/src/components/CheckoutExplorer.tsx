@@ -13,11 +13,16 @@ export default function CheckoutExplorer() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [storeHash, setStoreHash] = useState<string>("");
   const [accessToken, setAccessToken] = useState<string>("");
+  const [storeUrl, setStoreUrl] = useState<string>("");
 
   const handleApiCredentialsUpdate = (storeHash: string, accessToken: string) => {
     setStoreHash(storeHash);
     setAccessToken(accessToken);
     setIsApiConnected(true);
+  };
+
+  const handleStoreUrlUpdate = (url: string) => {
+    setStoreUrl(url);
   };
 
   const handleError = (message: string) => {
@@ -43,6 +48,7 @@ export default function CheckoutExplorer() {
           storeHash={storeHash}
           accessToken={accessToken}
           onCheckoutFetched={setCheckoutData}
+          onStoreUrlUpdated={handleStoreUrlUpdate}
           onError={handleError}
         />
         
@@ -58,6 +64,7 @@ export default function CheckoutExplorer() {
             checkoutData={checkoutData} 
             storeHash={storeHash}
             accessToken={accessToken}
+            storeUrl={storeUrl}
           />
         )}
       </main>

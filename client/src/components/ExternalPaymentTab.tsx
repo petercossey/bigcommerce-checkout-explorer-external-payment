@@ -56,12 +56,14 @@ interface ExternalPaymentTabProps {
   checkoutData: Checkout;
   storeHash: string;
   accessToken: string;
+  storeUrl?: string;
 }
 
 export default function ExternalPaymentTab({
   checkoutData,
   storeHash,
   accessToken,
+  storeUrl = "",
 }: ExternalPaymentTabProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -147,8 +149,33 @@ export default function ExternalPaymentTab({
       
       logs.push(`Order created successfully with ID: ${orderId}`);
 
-      // Step 3: Update order with payment information
-      logs.push("Step 3: Updating order with payment information...");
+      // Step 3: Get order details
+      logs.push("Step 3: Getting order details...");
+      
+      const orderDetailsResponse = await fetch(`/api/bigcommerce/get-order`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          storeHash,
+          accessToken,
+          orderId
+        }),
+      });
+
+      if (!orderDetailsResponse.ok) {
+        const errorText = await orderDetailsResponse.text();
+        logs.push(`Order details retrieval failed: ${orderDetailsResponse.status} ${orderDetailsResponse.statusText}`);
+        logs.push(`Error details: ${errorText}`);
+        throw new Error(`Failed to get order details: ${orderDetailsResponse.status} ${orderDetailsResponse.statusText}`);
+      }
+      
+      const orderDetails = await orderDetailsResponse.json();
+      logs.push(`Order details retrieved successfully: ${JSON.stringify(orderDetails, null, 2).substring(0, 200)}...`);
+      
+      // Step 4: Update order with payment information
+      logs.push("Step 4: Updating order with payment information...");
       
       const updateResponse = await fetch(`/api/bigcommerce/update-order`, {
         method: "POST",
@@ -176,10 +203,10 @@ export default function ExternalPaymentTab({
       
       logs.push("Order updated successfully");
 
-      // Step 4: Set confirmation URL
-      logs.push("Step 4: Flow completed - generating confirmation URL");
-      const storeUrl = "https://yourstore.example.com"; // This would be dynamic in a real app
-      setConfirmationUrl(`${storeUrl}/checkout/order-confirmation/${orderId}?t=${token}`);
+      // Step 5: Set confirmation URL
+      logs.push("Step 5: Flow completed - generating confirmation URL");
+      const finalStoreUrl = storeUrl || "https://yourstore.mybigcommerce.com"; // Use provided URL or fallback
+      setConfirmationUrl(`${finalStoreUrl}/checkout/order-confirmation/${orderId}?t=${token}`);
       logs.push("Payment middleware flow completed successfully");
       
       setDebugInfo(logs);
