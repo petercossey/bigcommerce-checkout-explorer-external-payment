@@ -120,7 +120,7 @@ export default function ExternalPaymentTab({
         throw new Error("Token response did not contain a token");
       }
       
-      logs.push("Token generated successfully");
+      logs.push(`Token generated successfully: ${token}`);
 
       // Step 2: Convert checkout to order
       logs.push("Step 2: Converting checkout to order...");
