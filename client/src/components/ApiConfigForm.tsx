@@ -28,7 +28,7 @@ interface ApiConfigFormProps {
 
 const COOKIE_STORE_HASH = "bc_store_hash";
 const COOKIE_ACCESS_TOKEN = "bc_access_token";
-const COOKIE_EXPIRY_DAYS = 30;
+const COOKIE_EXPIRY_DAYS = 1; // Reduced to 1 day for security
 
 export default function ApiConfigForm({ onApiConnected, onError }: ApiConfigFormProps) {
   const [showPassword, setShowPassword] = useState(false);
