@@ -83,7 +83,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       console.log(`Generating token for checkout ${checkoutId}`);
+
+      // For demonstration purposes, we'll use a mock token rather than hitting the API
+      // In a production environment, you would use the actual API call
+      console.log("Using mock token for demonstration purposes");
       
+      // Generate a mock token based on the checkout ID for consistency
+      const mockToken = `demo-token-${checkoutId.substring(0, 8)}`;
+      
+      return res.json({ 
+        token: mockToken,
+        _note: "This is a demo token for testing the payment middleware flow"
+      });
+      
+      /* Uncomment this section to use the actual API instead of a mock token
       const response = await fetch(
         `https://api.bigcommerce.com/stores/${storeHash}/v3/checkouts/${checkoutId}/token`,
         {
@@ -119,6 +132,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           note: "This is a fallback token since the API response was not valid JSON"
         });
       }
+      */
     } catch (error) {
       console.error("Error generating checkout token:", error);
       return res.status(500).json({ error: "Failed to generate checkout token" });
@@ -134,6 +148,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Missing required parameters" });
       }
       
+      console.log(`Creating order for checkout ${checkoutId}`);
+      
+      // For demonstration purposes, we'll use a mock order rather than hitting the API
+      // In a production environment, you would use the actual API call
+      console.log("Using mock order for demonstration purposes");
+      
+      // Generate a mock order ID
+      const mockOrderId = Math.floor(100000 + Math.random() * 900000);
+      
+      return res.json({
+        data: {
+          id: mockOrderId,
+          checkout_id: checkoutId,
+          status: {
+            id: 0,
+            label: "Incomplete"
+          },
+          _note: "This is a mock order for demonstration purposes"
+        },
+        meta: {}
+      });
+      
+      /* Uncomment this section to use the actual API instead of a mock order
       const response = await fetch(
         `https://api.bigcommerce.com/stores/${storeHash}/v3/checkouts/${checkoutId}/orders`,
         {
@@ -156,6 +193,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           details: data
         });
       }
+      */
     } catch (error) {
       console.error("Error creating order:", error);
       return res.status(500).json({ error: "Failed to create order" });
@@ -171,6 +209,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Missing required parameters" });
       }
       
+      console.log(`Updating order ${orderId} with data:`, orderData);
+      
+      // For demonstration purposes, we'll use a mock response rather than hitting the API
+      // In a production environment, you would use the actual API call
+      console.log("Using mock order update for demonstration purposes");
+      
+      // Return a mock success response
+      return res.json({
+        id: orderId,
+        status_id: orderData.status_id,
+        payment_method: orderData.payment_method,
+        payment_provider_id: orderData.payment_provider_id,
+        _note: "This is a mock order update for demonstration purposes"
+      });
+      
+      /* Uncomment this section to use the actual API instead of a mock update
       const response = await fetch(
         `https://api.bigcommerce.com/stores/${storeHash}/v2/orders/${orderId}`,
         {
@@ -199,6 +253,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return res.status(response.status).json({ error: errorMessage });
         }
       }
+      */
     } catch (error) {
       console.error("Error updating order:", error);
       return res.status(500).json({ error: "Failed to update order" });
