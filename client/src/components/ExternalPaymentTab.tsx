@@ -113,11 +113,21 @@ export default function ExternalPaymentTab({
       }
       
       const tokenData = await tokenResponse.json();
-      const token = tokenData.token;
       
-      if (!token) {
-        logs.push("Token response did not contain a token");
-        throw new Error("Token response did not contain a token");
+      // Handle both direct token format and nested data format returned by BigCommerce API
+      let token;
+      if (tokenData.token) {
+        // Format from our fallback generator
+        token = tokenData.token;
+        logs.push("Using fallback-generated token");
+      } else if (tokenData.data && tokenData.data.checkoutToken) {
+        // Format from BigCommerce API
+        token = tokenData.data.checkoutToken;
+        logs.push("Using BigCommerce API-generated token");
+      } else {
+        logs.push("Token response did not contain a token in any expected format");
+        logs.push(`Response data: ${JSON.stringify(tokenData, null, 2)}`);
+        throw new Error("Token response did not contain a token in any expected format");
       }
       
       logs.push(`Token generated successfully: ${token}`);
@@ -174,8 +184,8 @@ export default function ExternalPaymentTab({
       const finalStoreUrl = storeUrl || "https://yourstore.mybigcommerce.com"; // Use provided URL or fallback
       if (createdOrderId) {
         // Format: {store_url}/order-confirmation/{order_id}?t={checkout_token}
-        setConfirmationUrl(`${finalStoreUrl}/checkout/order-confirmation/${createdOrderId}?t=${token}`);
-        logs.push(`Confirmation URL created with pattern: {store_url}/checkout/order-confirmation/{order_id}?t={checkout_token}`);
+        setConfirmationUrl(`${finalStoreUrl}/order-confirmation/${createdOrderId}?t=${token}`);
+        logs.push(`Confirmation URL created with pattern: {store_url}/order-confirmation/{order_id}?t={checkout_token}`);
       } else {
         logs.push("Warning: Unable to generate confirmation URL because order ID is missing");
       }
