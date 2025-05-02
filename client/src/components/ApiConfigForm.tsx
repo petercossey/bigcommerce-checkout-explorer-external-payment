@@ -110,6 +110,9 @@ export default function ApiConfigForm({ onApiConnected, onError }: ApiConfigForm
         <CardTitle className="text-lg font-semibold text-[#1E3050] mb-4">
           API Configuration
         </CardTitle>
+        <p className="text-sm text-neutral-600 mb-4">
+          Required API scopes: store_v2_orders, store_v3_checkouts, store_catalog_read_only
+        </p>
         
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
