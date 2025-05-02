@@ -6,7 +6,15 @@ interface HeaderProps {
 
 export default function Header({ isConnected }: HeaderProps) {
   return (
-    <header className="bg-white border-b border-neutral-200 shadow-sm">
+    <>
+      <div className="bg-amber-50 border-b border-amber-200 p-3">
+        <div className="container mx-auto px-4">
+          <p className="text-amber-800 text-sm font-medium">
+            ⚠️ This tool is for educational purposes only. Please use only with sandbox/test environments. Do not connect to production systems.
+          </p>
+        </div>
+      </div>
+      <header className="bg-white border-b border-neutral-200 shadow-sm">
       <div className="container mx-auto px-4 py-4 flex items-center justify-between">
         <div className="flex items-center space-x-2">
           <ShoppingCart className="text-[#1E3050]" />
@@ -30,5 +38,6 @@ export default function Header({ isConnected }: HeaderProps) {
         </div>
       </div>
     </header>
+    </>
   );
 }
